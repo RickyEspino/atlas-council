@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Plus, SlidersHorizontal, Trash2, VolumeX, Volume2, Replace } from 'lucide-react'
 import { handleFor } from '../lib/prompt'
+import { orderCouncilSeats } from '../lib/councilPresentation'
+import { presetFromSession } from '../lib/councilPreset'
 import type { Participant, Session, SpeakingOrder } from '../lib/types'
 import { modelLabel, useStore } from '../store'
 import { ModelPicker } from './ModelPicker'
@@ -92,6 +94,8 @@ function ParticipantEditor({
 
 function GroupOptions({ session, anchor, onClose }: { session: Session; anchor: HTMLElement | null; onClose: () => void }) {
   const global = useStore((s) => s.settings.group)
+  const savedCouncil = useStore((s) => s.settings.councilPreset)
+  const updateSettings = useStore((s) => s.updateSettings)
   const updateSession = useStore((s) => s.updateSession)
   const rounds = session.rounds ?? global.rounds
   const order = session.order ?? global.order
@@ -117,6 +121,25 @@ function GroupOptions({ session, anchor, onClose }: { session: Session; anchor: 
           </div>
           <p className="mt-1.5 text-xs text-subtle">Each model speaks once per round, so they can reply to each other.</p>
         </div>
+        <label className="flex cursor-pointer items-start gap-2 text-xs">
+          <input
+            type="checkbox"
+            className="mt-0.5 accent-[var(--accent)]"
+            checked={session.independentOpenings ?? false}
+            onChange={(e) =>
+              updateSession(session.id, {
+                independentOpenings: e.target.checked,
+              })
+            }
+          />
+          <span>
+            <span className="font-medium">Independent opening round</span>
+            <span className="mt-1 block text-subtle">
+              The first answers use the same conversation snapshot.
+              Later rounds are an open discussion.
+            </span>
+          </span>
+        </label>
         <div>
           <div className="mb-1.5 text-xs font-medium text-muted">Speaking order</div>
           <Segmented<SpeakingOrder>
@@ -127,6 +150,23 @@ function GroupOptions({ session, anchor, onClose }: { session: Session; anchor: 
               { value: 'random', label: 'Shuffled' },
             ]}
           />
+        </div>
+        <div className="border-t border-line pt-3">
+          <div className="mb-2 text-xs font-medium text-muted">Saved Council</div>
+          <button type="button"
+            disabled={session.participants.length === 0}
+            onClick={() => updateSettings({ councilPreset: presetFromSession(session, global) })}
+            className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium hover:bg-hover disabled:opacity-50">
+            {savedCouncil ? 'Update default Council' : 'Save this group as default Council'}
+          </button>
+          {savedCouncil && (
+            <button type="button" onClick={() => updateSettings({ councilPreset: undefined })}
+              className="ml-2 text-xs text-muted underline hover:text-fg">Clear</button>
+          )}
+          <p className="mt-2 text-xs text-subtle">
+            New group chats will reuse these models, names, personas, and discussion settings.
+            Existing chats stay unchanged.
+          </p>
         </div>
         <p className="text-xs leading-relaxed text-subtle">
           Start a message with <span className="font-mono">@name</span> to hear from specific models only.
@@ -146,19 +186,22 @@ export function ParticipantsBar({ session }: { session: Session }) {
   return (
     <div className="flex min-w-0 items-center gap-1">
       <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-        {session.participants.map((p) => (
+        {orderCouncilSeats(session.participants).map((p) => (
           <button
             key={p.id}
             type="button"
             title={`${p.name}${p.muted ? ' (sitting out)' : ''}`}
             onClick={(e) => setEditing({ id: p.id, anchor: e.currentTarget })}
             className={cn(
-              'flex shrink-0 items-center gap-1.5 rounded-full border border-line py-0.5 pl-0.5 pr-2.5 text-xs hover:bg-hover',
+              'atlas-seat-chip flex shrink-0 items-center gap-1.5 rounded-full border border-line py-0.5 pl-0.5 pr-2.5 text-xs hover:bg-hover',
               p.muted && 'opacity-45',
             )}
           >
             <Avatar color={p.color} name={p.name} size="sm" />
             <span className="max-w-28 truncate">{p.name}</span>
+            {session.messages.some((m) => m.status === 'streaming' && m.participantId === p.id) && (
+              <span className="atlas-speaking-indicator" title={`${p.name} is responding`} />
+            )}
           </button>
         ))}
       </div>

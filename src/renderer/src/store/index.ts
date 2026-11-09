@@ -6,6 +6,8 @@ import type { ChatGPTAccount } from '../../../shared/bridge'
 import { listSavedKeys, removeKey } from '../lib/keys'
 import { bridge, hasBackend, newId } from '../lib/platform'
 import { autoTitle } from '../lib/prompt'
+import { councilColorForName } from '../lib/councilPalette'
+import { membersFromPreset } from '../lib/councilPreset'
 import {
   DEMO_PROVIDER_ID,
   PRESETS,
@@ -75,7 +77,7 @@ export interface AppState extends PersistedState {
   refreshChatGPT(): Promise<void>
   setChatGPTWelcomeOpen(open: boolean): void
 
-  createSession(options: { kind: SessionKind; models?: ModelRef[]; placement?: Placement }): string
+  createSession(options: { kind: SessionKind; models?: ModelRef[]; placement?: Placement; useSavedCouncil?: boolean }): string
   updateSession(id: string, patch: Partial<Session>): void
   deleteSession(id: string): void
   renameSession(id: string, title: string): void
@@ -309,6 +311,15 @@ export const useStore = create<AppState>()(
           features: { ...DEFAULT_SETTINGS.features, ...state.settings.features },
           group: { ...DEFAULT_SETTINGS.group, ...state.settings.group },
         }
+        // Migrate stored preset colors without changing names, models, or prompts.
+        if (settings.councilPreset) {
+          settings.councilPreset = {
+            ...settings.councilPreset,
+            participants: settings.councilPreset.participants.map((p) => ({
+              ...p, color: councilColorForName(p.name) ?? p.color,
+            })),
+          }
+        }
         // Installs from before Sign in with ChatGPT existed get its provider once.
         if (!settings.chatgptOffered) {
           const preset = PRESETS.find((p) => p.kind === 'chatgpt')
@@ -323,12 +334,13 @@ export const useStore = create<AppState>()(
         const sessions: Record<string, Session> = {}
         for (const session of Object.values(state.sessions)) {
           const interrupted = session.messages.some((m) => m.status === 'streaming')
-          sessions[session.id] = interrupted
-            ? {
-                ...session,
-                messages: session.messages.map((m) => (m.status === 'streaming' ? { ...m, status: 'stopped' } : m)),
-              }
-            : session
+          sessions[session.id] = {
+            ...session,
+            participants: session.participants.map((p) => ({ ...p, color: councilColorForName(p.name) ?? p.color })),
+            messages: interrupted
+              ? session.messages.map((m) => (m.status === 'streaming' ? { ...m, status: 'stopped' } : m))
+              : session.messages,
+          }
         }
         let panes = state.panes.filter((id) => sessions[id])
         if (!settings.features.splitView) panes = panes.slice(0, 1)
@@ -373,14 +385,23 @@ export const useStore = create<AppState>()(
         set({ chatgptWelcomeOpen: open })
       },
 
-      createSession({ kind, models, placement = 'replace' }) {
+      createSession({ kind, models, placement = 'replace', useSavedCouncil = false }) {
         const state = get()
+        const preset = kind === 'group' && useSavedCouncil ? state.settings.councilPreset : undefined
         const refs = models ?? (kind === 'chat' ? [defaultModelRef(state)].filter((r): r is ModelRef => !!r) : [])
-        const participants: Participant[] = []
-        for (const ref of kind === 'chat' ? refs.slice(0, 1) : refs) {
-          participants.push(makeParticipant(state.providers, ref, participants))
+        const participants: Participant[] = preset ? membersFromPreset(preset, newId) : []
+        if (!preset) {
+          for (const ref of kind === 'chat' ? refs.slice(0, 1) : refs) {
+            participants.push(makeParticipant(state.providers, ref, participants))
+          }
         }
         const session = newSession(kind, participants)
+        if (preset) {
+          session.systemPrompt = preset.systemPrompt
+          session.rounds = preset.rounds
+          session.order = preset.order
+          session.independentOpenings = preset.independentOpenings
+        }
         set((s) => ({ sessions: { ...s.sessions, [session.id]: session } }))
         if (placement !== 'none') get().openSession(session.id, placement)
         return session.id
@@ -427,7 +448,7 @@ export const useStore = create<AppState>()(
         const session = get().sessions[sessionId]
         if (!session) return
         get().updateSession(sessionId, {
-          participants: session.participants.map((p) => (p.id === participantId ? { ...p, ...patch } : p)),
+          participants: session.participants.map((p) => (p.id === participantId ? { ...p, ...patch, color: councilColorForName(patch.name ?? p.name) ?? patch.color ?? p.color } : p)),
         })
       },
 

@@ -1,14 +1,14 @@
 {
-  "name": "parallax",
-  "productName": "Parallax",
-  "version": "0.4.2",
-  "description": "A desktop chat app for running Claude, GPT, Gemini and any OpenAI-compatible model side by side (with your API keys or your ChatGPT plan): broadcast one prompt to many sessions, compare the answers, or put several models in one group chat.",
-  "author": "Houchen181",
+  "name": "atlas-council",
+  "productName": "Atlas Council",
+  "version": "0.1.0",
+  "description": "Local-first multi-model AI Council with independent opening assessments, reusable roles, and an installable PWA",
+  "author": "Atlas Council contributors",
   "license": "MIT",
-  "homepage": "https://github.com/Houchen181/parallax",
+  "homepage": "https://github.com/RickyEspino/atlas-council",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Houchen181/parallax.git"
+    "url": "https://github.com/RickyEspino/atlas-council.git"
   },
   "main": "dist/main/index.js",
   "private": true,
@@ -56,6 +56,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
+    "vite-plugin-pwa": "^2.0.0",
     "vitest": "^5.0.3",
     "zod": "^4.6.5",
     "zustand": "^5.0.15"

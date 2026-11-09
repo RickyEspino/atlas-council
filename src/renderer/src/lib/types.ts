@@ -57,6 +57,14 @@ export interface Participant {
   muted?: boolean
 }
 
+export interface CouncilPreset {
+  participants: Array<Omit<Participant, 'id' | 'muted'>>
+  systemPrompt?: string
+  rounds?: number
+  order?: SpeakingOrder
+  independentOpenings?: boolean
+}
+
 export type MessageStatus = 'streaming' | 'done' | 'error' | 'stopped' | 'refused'
 
 export interface MessageMetrics {
@@ -105,6 +113,8 @@ export interface Session {
   titleEdited?: boolean
   /** Group chats: overrides for the global group settings. */
   rounds?: number
+  /** First round uses a shared history snapshot; peers cannot see each other's opening answers. */
+  independentOpenings?: boolean
   order?: SpeakingOrder
 }
 
@@ -142,6 +152,7 @@ export interface Settings {
   maxOutputTokens: number
   features: FeatureFlags
   group: GroupSettings
+  councilPreset?: CouncilPreset
   /** The one-time "You're using your ChatGPT plan" message was dismissed. */
   chatgptWelcomeSeen?: boolean
   /** The ChatGPT plan provider was added once for existing installs. */

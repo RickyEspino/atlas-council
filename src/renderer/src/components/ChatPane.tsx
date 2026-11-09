@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react'
 import { startDemo } from '../lib/engine'
+import { COUNCIL_STARTERS, COUNCIL_STARTER_EVENT, orderCouncilSeats } from '../lib/councilPresentation'
 import type { Session } from '../lib/types'
 import { modelLabel, providerReady, useFeatures, useStore } from '../store'
 import { MessageView } from './MessageView'
@@ -145,16 +146,41 @@ function EmptyState({ session, compact }: { session: Session; compact: boolean }
   if (session.kind === 'group') {
     const count = session.participants.length
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-        <div className="flex size-12 items-center justify-center rounded-2xl bg-accent-soft text-accent">
-          <Users className="size-6" />
-        </div>
-        <h2 className="text-xl font-semibold">Group chat</h2>
-        <p className="max-w-md text-sm leading-relaxed text-muted">
+      <div className="atlas-welcome flex h-full flex-col items-center justify-center overflow-y-auto px-5 py-10 text-center">
+        <div className="atlas-welcome-halo"><Logo className="size-[76px]" /></div>
+        <div className="atlas-eyebrow mt-7">{count < 2 ? 'ASSEMBLE THE COUNCIL' : 'THE COUNCIL AWAITS'}</div>
+        <h2 className="atlas-welcome-title mt-3">{count === 3 ? 'Three minds.' : count === 0 ? 'Your Council.' : `${count} perspectives.`}<br /><span>One better question.</span></h2>
+        <p className="mt-4 max-w-lg text-sm leading-7 text-muted">
           {count < 2
-            ? 'Add at least two models with the + button above, then say something to get them talking.'
-            : `${count} models are here. Send a message and each one replies in turn, reading what the others said.`}
+            ? 'Add at least two models above to assemble your Council.'
+            : 'Bring the question. Let distinct perspectives challenge assumptions, find the blind spots, and build something worth acting on.'}
         </p>
+        <div className="atlas-welcome-roster mt-8">
+          {orderCouncilSeats(session.participants).map((p) => (
+            <div key={p.id} className="atlas-welcome-seat">
+              <span className="atlas-welcome-seat-mark" style={{ backgroundColor: `${p.color}24`, color: p.color, borderColor: `${p.color}70` }}>
+                {p.name.slice(0, 1).toUpperCase()}
+              </span>
+              <span className="truncate text-sm font-semibold">{p.name}</span>
+              <span className="text-[11px] text-subtle">{p.name.toLowerCase().includes('solara') ? 'THE VISIONARY' : (p.name.toLowerCase().includes('vector') || p.name.toLowerCase().includes('vectone')) ? 'THE CHALLENGER' : 'THE STRATEGIST'}</span>
+            </div>
+          ))}
+        </div>
+        {count >= 2 && (
+          <div className="atlas-starters mt-8">
+            <div className="atlas-section-label mb-2 text-center">START A CONVERSATION</div>
+            <p className="mb-3 text-xs text-muted">Choose a starting point, then personalize the prompt.</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {COUNCIL_STARTERS.map((item) => (
+                <button key={item.label} type="button" className="atlas-starter" onClick={() => window.dispatchEvent(new CustomEvent(COUNCIL_STARTER_EVENT, {
+                  detail: { sessionId: session.id, prompt: item.prompt },
+                }))}>
+                  {item.label} <span aria-hidden="true">↗</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -225,9 +251,9 @@ function MessageList({ session, compact }: { session: Session; compact: boolean 
         const el = e.currentTarget
         stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
       }}
-      className="@container h-full overflow-y-auto"
+      className="atlas-message-list @container h-full overflow-y-auto"
     >
-      <div className={cn('mx-auto flex flex-col gap-6 py-6', compact ? 'px-4' : 'max-w-3xl px-6')}>
+      <div className={cn('mx-auto flex flex-col gap-6 py-6', compact ? 'px-4' : 'max-w-[920px] px-5 sm:px-7')}>
         {session.messages.map((message) => (
           <MessageView
             key={message.id}
@@ -262,7 +288,7 @@ export function ChatPane({ sessionId, multi, leading }: { sessionId: string; mul
     <section
       onMouseDown={() => focusPane(sessionId)}
       className={cn(
-        'relative flex min-w-[300px] flex-1 flex-col border-line',
+        'atlas-chat-pane relative flex min-w-[300px] flex-1 flex-col border-line',
         multi && 'border-r last:border-r-0',
       )}
     >
@@ -274,7 +300,7 @@ export function ChatPane({ sessionId, multi, leading }: { sessionId: string; mul
           )}
         />
       )}
-      <header className="flex h-12 shrink-0 items-center gap-1 px-2">
+      <header className="atlas-chamber-header flex h-14 shrink-0 items-center gap-1 px-3">
         {leading}
         {session.kind === 'chat' ? (
           <ModelButton session={session} />
@@ -307,11 +333,18 @@ export function ChatPane({ sessionId, multi, leading }: { sessionId: string; mul
               title="Double-click to rename"
               className="block max-w-full truncate text-left text-sm text-muted"
             >
-              {session.messages.length ? paneTitle(session) : ''}
+              {session.messages.length ? (session.kind === 'group' ? 'Council deliberation' : paneTitle(session)) : ''}
             </button>
           )}
         </div>
-        {running && <span className="mr-1 size-2 animate-pulse rounded-full bg-accent" title="Generating" />}
+        {session.kind === 'group' ? (
+          <span className="atlas-session-status hidden shrink-0 items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-[11px] text-muted sm:inline-flex" role="status" aria-live="polite">
+            <span className={cn('size-1.5 rounded-full', running ? 'animate-pulse bg-ok' : 'bg-subtle')} />
+            {running ? 'Deliberating' : 'Ready'}
+          </span>
+        ) : running ? (
+          <span className="mr-1 size-2 animate-pulse rounded-full bg-accent" title="Generating" />
+        ) : null}
         {broadcasting && (
           <IconButton
             label={excluded ? 'Not receiving broadcasts (click to include)' : 'Receives broadcasts (click to exclude)'}

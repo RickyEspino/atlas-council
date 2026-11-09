@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { councilColorForName, councilSeatForName } from '../lib/councilPalette'
 
 export function cn(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(' ')
@@ -324,23 +325,28 @@ export function MenuItem({
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
-      <circle cx="12" cy="13" r="7.5" fill="#7c5cff" opacity="0.9" />
-      <circle cx="20" cy="13" r="7.5" fill="#14b8a6" opacity="0.8" />
-      <circle cx="16" cy="20" r="7.5" fill="#f97362" opacity="0.8" />
+    <svg viewBox="0 0 64 64" className={className} aria-hidden="true" fill="none">
+      <rect x="1" y="1" width="62" height="62" rx="18" fill="#0D1529" stroke="#364A6A" strokeWidth="1.5" />
+      <path d="M32 12 53 49H11L32 12Z" stroke="#8A9EFF" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M32 12V49M11 49 43 30M53 49 21 30" stroke="#506C99" strokeWidth="1.8" />
+      <circle cx="32" cy="12" r="5.2" fill="#F4C757" />
+      <circle cx="11" cy="49" r="5.2" fill="#F06472" />
+      <circle cx="53" cy="49" r="5.2" fill="#60B8FA" />
+      <circle cx="32" cy="35" r="4" fill="#E9EFFF" />
     </svg>
   )
 }
 
 export function Avatar({ color, name, size = 'md' }: { color: string; name: string; size?: 'sm' | 'md' }) {
   const initial = name.trim().charAt(0).toUpperCase() || '?'
+  const seat = councilSeatForName(name)
   return (
     <span
       className={cn(
         'inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white',
         size === 'sm' ? 'size-5 text-[10px]' : 'size-7 text-xs',
       )}
-      style={{ backgroundColor: color }}
+      style={{ backgroundColor: councilColorForName(name) ?? color, color: seat === 'solara' || seat === 'vector' ? '#102038' : '#ffffff' }}
       aria-hidden="true"
     >
       {initial}

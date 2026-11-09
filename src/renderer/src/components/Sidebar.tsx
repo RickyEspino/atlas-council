@@ -43,7 +43,7 @@ function NavButton({ icon, label, hint, onClick }: { icon: ReactNode; label: str
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-fg hover:bg-hover"
+      className="atlas-nav-button flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-fg hover:bg-hover"
     >
       <span className="flex size-4 items-center justify-center text-muted">{icon}</span>
       <span className="flex-1">{label}</span>
@@ -83,8 +83,9 @@ function SessionItem({ session, active, visible }: { session: Session; active: b
 
   return (
     <div
+      data-selected={active}
       className={cn(
-        'group relative flex items-center rounded-lg text-sm',
+        'atlas-session-row group relative flex items-center rounded-xl text-sm',
         active ? 'bg-hover' : visible ? 'bg-hover/50' : 'hover:bg-hover',
       )}
     >
@@ -168,18 +169,29 @@ export function Sidebar() {
   if (!open) return null
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-sidebar">
-      <div className="flex h-12 items-center justify-between pl-3.5 pr-2">
+    <>
+      <button className="atlas-sidebar-scrim" aria-label="Close navigation" type="button" onClick={toggleSidebar} />
+    <aside className="atlas-sidebar flex w-72 shrink-0 flex-col border-r border-line bg-sidebar">
+      <div className="atlas-brand flex h-[76px] items-center justify-between pl-4 pr-3">
         <div className="flex items-center gap-2">
-          <Logo className="size-6" />
-          <span className="text-[15px] font-semibold tracking-tight">Parallax</span>
+          <Logo className="atlas-brand-mark size-9" />
+          <div className="min-w-0">
+            <div className="atlas-brand-title">ATLAS <span>COUNCIL</span></div>
+            <div className="atlas-brand-subtitle">THREE MINDS · ONE VISION</div>
+          </div>
         </div>
         <IconButton label="Hide sidebar (Ctrl+B)" onClick={toggleSidebar}>
           <PanelLeftClose className="size-4" />
         </IconButton>
       </div>
 
-      <nav className="space-y-0.5 px-2">
+      <div className="atlas-sidebar-intro mx-3 mb-4 rounded-2xl p-4">
+        <div className="atlas-eyebrow">COUNCIL WORKSPACE <span className="atlas-signal-dot" /></div>
+        <div className="mt-2 text-base font-semibold tracking-tight">Think beyond one answer.</div>
+        <p className="mt-1 text-xs leading-relaxed text-muted">Distinct perspectives. One sharper decision.</p>
+      </div>
+      <div className="atlas-section-label px-5 pb-2">START SOMETHING</div>
+      <nav className="space-y-1 px-3">
         <NavButton
           icon={<SquarePen className="size-4" />}
           label="New chat"
@@ -189,9 +201,9 @@ export function Sidebar() {
         {features.groupChat && (
           <NavButton
             icon={<Users className="size-4" />}
-            label="New group chat"
+            label="Convene Council"
             onClick={() =>
-              createSession({ kind: 'group', models: suggestGroupModels(useStore.getState()), placement: 'replace' })
+              createSession({ kind: 'group', models: suggestGroupModels(useStore.getState()), placement: 'replace', useSavedCouncil: true })
             }
           />
         )}
@@ -200,7 +212,7 @@ export function Sidebar() {
         )}
       </nav>
 
-      <div className="px-2 pt-3">
+      <div className="atlas-sidebar-search px-3 pt-5">
         <label className="flex items-center gap-2 rounded-lg border border-line bg-app px-2.5">
           <Search className="size-3.5 text-subtle" />
           <input
@@ -212,7 +224,7 @@ export function Sidebar() {
         </label>
       </div>
 
-      <div className="mt-2 flex-1 overflow-y-auto px-2 pb-2">
+      <div className="mt-3 flex-1 overflow-y-auto px-3 pb-2">
         {groups.length === 0 && (
           <p className="px-2.5 py-6 text-center text-xs text-subtle">{query ? 'No chats match.' : 'Your chats will appear here.'}</p>
         )}
@@ -233,7 +245,8 @@ export function Sidebar() {
         ))}
       </div>
 
-      <div className="border-t border-line p-2">
+      <div className="atlas-sidebar-footer border-t border-line p-3">
+        <div className="atlas-section-label mb-1 pl-3">WORKSPACE</div>
         <NavButton icon={<Settings className="size-4" />} label="Settings" hint="Ctrl+," onClick={() => openSettings()} />
         <button
           type="button"
@@ -245,5 +258,6 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   )
 }

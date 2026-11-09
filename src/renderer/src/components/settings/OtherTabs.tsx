@@ -102,8 +102,9 @@ export function GroupTab() {
         <Switch label="Announce participants" checked={group.announceRoster} onChange={(v) => update({ announceRoster: v })} />
       </SettingRow>
       <div className="mt-4 rounded-xl border border-line bg-sidebar px-4 py-3 text-[13px] leading-relaxed text-muted">
-        Every model sees the whole conversation. Its own earlier replies are sent as its turns, and everything else is labelled with
-        the speaker, like <span className="font-mono">[User]: …</span> or <span className="font-mono">[Claude Opus 5.5]: …</span>.
+        Normally, models receive the shared discussion, with earlier contributions labeled by speaker.
+        In a group's options, <strong>Independent opening round</strong> lets everyone answer a new prompt from the same
+        pre-round transcript before later rounds resume discussion.
         Start a message with <span className="font-mono">@name</span> to hear from one model only.
       </div>
     </div>

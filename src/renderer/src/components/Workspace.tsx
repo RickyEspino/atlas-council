@@ -23,7 +23,7 @@ export function Workspace() {
   )
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col bg-app">
+    <main className="atlas-workspace flex min-w-0 flex-1 flex-col bg-app">
       <div className="flex min-h-0 flex-1 overflow-x-auto">
         {panes.map((id, index) => (
           <ChatPane key={id} sessionId={id} multi={multi} leading={index === 0 ? leading : undefined} />

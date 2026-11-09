@@ -4,11 +4,12 @@ import { findModel, flushPersist, providerProblem, useStore } from '../store'
 import { isAbortError } from './http'
 import { newId } from './platform'
 import { chatTurns, estimateTokens, groupTurns, parseMentions, stripSpeakerPrefix, systemPromptFor } from './prompt'
+import { runIndependentOpening, shouldOpenIndependently } from './councilOpening'
 import { adapterFor } from './providers'
 import { DEMO_COMPARE_PROMPT, DEMO_GROUP_PROMPT } from './providers/demo'
 import { DEMO_MODELS, DEMO_PROVIDER_ID } from './providers/presets'
 import { ProviderError, type ChatResult } from './providers/types'
-import type { Participant } from './types'
+import type { Message, Participant } from './types'
 
 const controllers = new Map<string, AbortController>()
 const store = () => useStore.getState()
@@ -116,9 +117,21 @@ async function respond(sessionId: string, options: RespondOptions) {
       if (!current) return
       let speakers = current.participants.filter((p) => !p.muted && (!mentioned.length || mentioned.includes(p.id)))
       if ((current.order ?? settings.order) === 'random') speakers = shuffle(speakers)
-      for (const speaker of speakers) {
-        if (controller.signal.aborted) return
-        await generate(sessionId, speaker, controller.signal, options.broadcastId)
+      const independentOpening = shouldOpenIndependently(
+        round, !!options.prompt, !!current.independentOpenings, speakers.length,
+      )
+
+      if (independentOpening) {
+        // Every speaker gets the same pre-round transcript.
+        // Later rounds return to the normal sequential discussion.
+        await runIndependentOpening(speakers, current.messages, (speaker, snapshot) =>
+          generate(sessionId, speaker, controller.signal, options.broadcastId, snapshot),
+        )
+      } else {
+        for (const speaker of speakers) {
+          if (controller.signal.aborted) return
+          await generate(sessionId, speaker, controller.signal, options.broadcastId)
+        }
       }
     }
   } finally {
@@ -175,12 +188,18 @@ function describeError(err: unknown): string {
   return String(err)
 }
 
-async function generate(sessionId: string, participant: Participant, signal: AbortSignal, broadcastId?: string) {
+async function generate(
+  sessionId: string,
+  participant: Participant,
+  signal: AbortSignal,
+  broadcastId?: string,
+  historyOverride?: Message[],
+) {
   const state = store()
   const session = state.sessions[sessionId]
   if (!session) return
   const provider = state.providers.find((p) => p.id === participant.providerId)
-  const history = session.messages
+  const history = historyOverride ?? session.messages
   const messageId = newId()
   state.addMessage(sessionId, {
     id: messageId,

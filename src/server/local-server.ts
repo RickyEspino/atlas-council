@@ -40,6 +40,7 @@ const MIME: Record<string, string> = {
   '.png': 'image/png',
   '.ico': 'image/x-icon',
   '.json': 'application/json',
+  '.webmanifest': 'application/manifest+json',
   '.map': 'application/json',
   '.woff2': 'font/woff2',
   '.woff': 'font/woff',

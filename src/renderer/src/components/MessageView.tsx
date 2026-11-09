@@ -2,6 +2,7 @@ import { memo, useState } from 'react'
 import { Brain, ChevronRight, GitCompareArrows, Pencil, RotateCcw, Star, TriangleAlert, Info } from 'lucide-react'
 import { editAndResend, regenerate } from '../lib/engine'
 import { metricParts } from '../lib/format'
+import { councilColorForName } from '../lib/councilPalette'
 import { openExternal } from '../lib/platform'
 import { CHATGPT_SETTINGS_CODES, CHATGPT_USAGE_LIMIT, CHATGPT_USAGE_URL } from '../lib/providers/chatgpt'
 import type { Message, Participant } from '../lib/types'
@@ -94,7 +95,7 @@ function UserMessage({ message, sessionId, canEdit }: { message: Message; sessio
   }
 
   return (
-    <div className="group flex flex-col items-end">
+    <div className="atlas-user group flex flex-col items-end">
       <div className="max-w-[85%] whitespace-pre-wrap rounded-3xl bg-bubble px-4 py-2.5 text-[15px] leading-relaxed [overflow-wrap:anywhere]">
         {message.content}
       </div>
@@ -137,7 +138,7 @@ function AssistantMessage({
   const patchMessage = useStore((s) => s.patchMessage)
   const openSettings = useStore((s) => s.openSettings)
   const name = participant?.name ?? message.model?.label ?? 'Assistant'
-  const color = participant?.color ?? '#8f8f8f'
+  const color = councilColorForName(name) ?? participant?.color ?? '#8f8f8f'
   const streaming = message.status === 'streaming'
   const metrics = showMetrics && !streaming ? metricParts(message.metrics) : []
   const usageLimit = message.errorCode === CHATGPT_USAGE_LIMIT
@@ -145,7 +146,7 @@ function AssistantMessage({
     !usageLimit && (CHATGPT_SETTINGS_CODES.has(message.errorCode ?? '') || message.error?.includes('Settings →'))
 
   return (
-    <div className="group flex gap-3">
+    <div className="atlas-assistant group flex gap-3" style={{ borderLeftColor: color }}>
       <div className="pt-0.5">
         <Avatar color={color} name={name} />
       </div>

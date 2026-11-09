@@ -1,6 +1,7 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ArrowUp, FastForward, Square } from 'lucide-react'
 import { continueGroup, sendPrompt, stop } from '../lib/engine'
+import { COUNCIL_STARTER_EVENT, type CouncilStarterDetail } from '../lib/councilPresentation'
 import { openExternal } from '../lib/platform'
 import { CHATGPT_USAGE_URL } from '../lib/providers/chatgpt'
 import type { Session } from '../lib/types'
@@ -35,6 +36,27 @@ export function Composer() {
   const features = useFeatures()
   const [text, setText] = useState('')
   const input = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    const onStarter = (event: Event) => {
+      const detail = (event as CustomEvent<CouncilStarterDetail>).detail
+      if (!detail?.prompt || !detail.sessionId) return
+      const state = useStore.getState()
+      if (!state.panes.includes(detail.sessionId)) return
+      state.focusPane(detail.sessionId)
+      setText(detail.prompt)
+      requestAnimationFrame(() => {
+        const el = input.current
+        if (!el) return
+        el.focus()
+        const start = el.value.indexOf('[')
+        const end = el.value.indexOf(']', start)
+        if (start >= 0 && end > start) el.setSelectionRange(start, end + 1)
+      })
+    }
+    window.addEventListener(COUNCIL_STARTER_EVENT, onStarter)
+    return () => window.removeEventListener(COUNCIL_STARTER_EVENT, onStarter)
+  }, [])
 
   const multi = panes.length > 1
   const broadcasting = multi && features.broadcast
@@ -81,7 +103,7 @@ export function Composer() {
           : 'Message'
 
   return (
-    <div className={cn('shrink-0 px-4 pb-4 pt-2', multi ? 'w-full' : 'mx-auto w-full max-w-3xl')}>
+    <div className={cn('atlas-composer-wrap shrink-0 px-4 pb-5 pt-3', multi ? 'w-full' : 'mx-auto w-full max-w-[920px]')}>
       {broadcasting && (
         <div className="mb-2 flex flex-wrap items-center gap-1.5 text-xs">
           <span className="text-muted">Send to</span>
@@ -106,7 +128,7 @@ export function Composer() {
           })}
         </div>
       )}
-      <div className="rounded-3xl border border-line bg-surface p-2 shadow-sm focus-within:border-subtle">
+      <div className="atlas-composer-panel rounded-3xl border border-line bg-surface p-2 shadow-sm focus-within:border-subtle">
         <textarea
           ref={input}
           rows={1}

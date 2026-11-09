@@ -38,7 +38,7 @@ function useShortcuts() {
         state.createSession({ kind: 'chat', placement: 'replace' })
       } else if (key === 'n' && event.shiftKey && state.settings.features.groupChat) {
         event.preventDefault()
-        state.createSession({ kind: 'group', models: suggestGroupModels(state), placement: 'replace' })
+        state.createSession({ kind: 'group', models: suggestGroupModels(state), placement: 'replace', useSavedCouncil: true })
       } else if (key === 'b') {
         event.preventDefault()
         state.toggleSidebar()
@@ -58,6 +58,12 @@ export default function App() {
   const hydrated = useStore((s) => s.hydrated)
   useTheme()
   useShortcuts()
+
+  useEffect(() => {
+    if (window.matchMedia('(max-width: 640px)').matches && useStore.getState().sidebarOpen) {
+      useStore.getState().toggleSidebar()
+    }
+  }, [])
 
   // ?demo=compare or ?demo=group opens a ready-made demo (used for screenshots and the web version).
   useEffect(() => {
